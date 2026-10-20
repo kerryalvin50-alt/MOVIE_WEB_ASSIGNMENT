@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CinePulse - Movie Discovery Application</title>
+
+  <!-- Google Fonts: Inter and Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <!-- React & React DOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel Standalone for JSX transformation in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Emotion (Required dependency for Material UI v5) -->
+  <script src="https://unpkg.com/@emotion/react@11.11.1/dist/emotion-react.umd.min.js"></script>
+  <script src="https://unpkg.com/@emotion/styled@11.11.1/dist/emotion-styled.umd.min.js"></script>
+
+  <!-- Material UI v5 JS CDN -->
+  <script src="https://unpkg.com/@mui/material@5.14.20/umd/material-ui.production.min.js" crossorigin></script>
+
+  <!-- Lucide Icons for Clean Modern UI -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Tailwind CSS CDN for quick helper utilities -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Custom Styling & Scrollbars */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b0f19;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, .brand-font {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* Custom Dark Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #e11d48;
+    }
+
+    /* Card Glow Effects */
+    .movie-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    }
+    .movie-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 25px -5px rgba(225, 29, 72, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Hero Banner Overlay Gradient */
+    .hero-overlay {
+      background: linear-gradient(180deg, rgba(11, 15, 25, 0.2) 0%, rgba(11, 15, 25, 0.8) 70%, #0b0f19 100%),
+                  linear-gradient(90deg, rgba(11, 15, 25, 0.9) 0%, rgba(11, 15, 25, 0.4) 50%, rgba(11, 15, 25, 0.8) 100%);
+    }
+
+    /* Hide horizontal scrollbars for clean row browsing */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, createContext, useContext } = React;
+    const {
+      AppBar, Toolbar, Typography, Container, Box, Grid, Card, CardMedia,
+      CardContent, Button, IconButton, TextField, InputAdornment, Chip,
+      Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
+      Dialog, DialogContent, DialogActions, Rating, Skeleton, Snackbar,
+      Alert, Badge, Tooltip, Select, MenuItem, FormControl, InputLabel
+    } = MaterialUI;
+
+    // --- FALLBACK MOCK DATA ENGINE (Ensures complete functionality out-of-the-box without API key) ---
+    const MOCK_MOVIES = [
+      {
+        id: 101,
+        title: "Dune: Part Two",
+        media_type: "movie",
+        overview: "Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the universe.",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRylJUeDX0A3szgi45w98Mu_lnGQ20a5PErFHJsrPV9CA&s=10",
+        backdrop_path: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.5,
+        release_date: "2024-03-01",
+        genre_ids: [28, 12, 878],
+        genres: ["Action", "Adventure", "Sci-Fi"],
+        runtime: "2h 46m",
+        trailer_url: "https://www.youtube.com/embed/Way9Dexny3w"
+      },
+      {
+        id: 102,
+        title: "Oppenheimer",
+        media_type: "movie",
+        overview: "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during World War II.",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtHcEp4CGmgOhHGVGqDMZUfC_9z7xDnn9HMNj2fuq7yQ&s=10",
+        backdrop_path: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.9,
+        release_date: "2023-07-21",
+        genre_ids: [18, 36],
+        genres: ["Drama", "History"],
+        runtime: "3h 00m",
+        trailer_url: "https://www.youtube.com/embed/uYPbbksJxIg"
+      },
+      {
+        id: 103,
+        title: "Cyberpunk: Edgerunners",
+        media_type: "tv",
+        overview: "A street kid trying to survive in a technology and body modification-obsessed city of the future. Having everything to lose, he chooses to stay alive by becoming an edgerunner.",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgtEL60BTksoHg1drZHIgM1yU0TbwCmc--l8PG6jOGLw&s=10",
+        backdrop_path: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.6,
+        release_date: "2022-09-13",
+        genre_ids: [16, 28, 878],
+        genres: ["Animation", "Action", "Sci-Fi"],
+        runtime: "1 Season",
+        trailer_url: "https://www.youtube.com/embed/JtqIas3bYhg"
+      },
+      {
+        id: 104,
+        title: "Interstellar",
+        media_type: "movie",
+        overview: "When Earth becomes uninhabitable in the future, a farmer and ex-NASA pilot, Joseph Cooper, is tasked to pilot a spacecraft, along with a team of researchers, to find a new planet for humans.",
+        poster_path: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
+        backdrop_path: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.7,
+        release_date: "2014-11-07",
+        genre_ids: [12, 18, 878],
+        genres: ["Adventure", "Drama", "Sci-Fi"],
+        runtime: "2h 49m",
+        trailer_url: "https://www.youtube.com/embed/zSWdZVtXT7E"
+      },
+      {
+        id: 105,
+        title: "Stranger Things",
+        media_type: "tv",
+        overview: "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces and one strange little girl.",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8_XqeGzDbbByb8pnNe4rUzHmi7H1Qwod4fFmo3AxiOw&s=10",
+        backdrop_path: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.6,
+        release_date: "2016-07-15",
+        genre_ids: [18, 14, 27],
+        genres: ["Drama", "Fantasy", "Horror"],
+        runtime: "4 Seasons",
+        trailer_url: "https://www.youtube.com/embed/b9EkMc79ZSU"
+      },
+      {
+        id: 106,
+        title: "Spider-Man: Across the Spider-Verse",
+        media_type: "movie",
+        overview: "Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence. But when the heroes clash on how to handle a new threat...",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQr--RgPLZ2CO9L5-qvjhHIln8ZFUeOUNqKP5CdWgTq4g&s=10",
+        backdrop_path: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.4,
+        release_date: "2023-06-02",
+        genre_ids: [16, 28, 12],
+        genres: ["Animation", "Action", "Adventure"],
+        runtime: "2h 20m",
+        trailer_url: "https://www.youtube.com/embed/cqGjhVJWtEg"
+      },
+      {
+        id: 107,
+        title: "The Last of Us",
+        media_type: "tv",
+        overview: "After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl who may be humanity's last hope.",
+        poster_path: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhpbt_GDQpYRH6Z1N1UKf6PcnnZLrVtpY1OLxtEPC-Iw&s",
+        backdrop_path: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80",
+        vote_average: 8.8,
+        release_date: "2023-01-15",
+        genre_ids: [18, 28, 27],
+        genres: ["Drama", "Action", "Horror"],
+        runtime: "1 Season",
+        trailer_url: "https://www.youtube.com/embed/uLtkt8BonwM"
+      },
+      {
+        id: 108,
+        title: "Blade Runner 2049",
+        media_type: "movie",
+        overview: "Thirty years after the events of the first film, a new blade runner, LAPD Officer K, unearths a long-buried secret that has the potential to plunge what's left of society into chaos.",
+        poster_path: "",
+        backdrop_path: "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",
+        vote_average: 8.0,
+        release_date: "2017-10-06",
+        genre_ids: [878, 18, 9648],
+        genres: ["Sci-Fi", "Drama", "Mystery"],
+        runtime: "2h 44m",
+        trailer_url: "https://www.youtube.com/embed/gCcx85zbxz4"
+      }
+    ];
+
+    const GENRES_LIST = [
+      { id: "all", name: "All Genres" },
+      { id: 28, name: "Action" },
+      { id: 12, name: "Adventure" },
+      { id: 16, name: "Animation" },
+      { id: 35, name: "Comedy" },
+      { id: 18, name: "Drama" },
+      { id: 14, name: "Fantasy" },
+      { id: 27, name: "Horror" },
+      { id: 878, name: "Sci-Fi" }
+    ];
+
+    // SVG Icon Component helper
+    const Icon = ({ name, size = 20, className = "" }) => {
+      const iconRef = React.useRef(null);
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, [name]);
+      return <i data-lucide={name} className={className} style={{ width: size, height: size, display: 'inline-block', verticalAlign: 'middle' }}></i>;
+    };
+
+    // --- APPLICATION STATE CONTEXT ---
+    const AppContext = createContext();
+
+    // Custom Hook for Context
+    const useApp = () => useContext(AppContext);
+
+    // --- MAIN APP PROVIDER & COMPONENT ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('home'); // 'home', 'movies', 'tv', 'watchlist'
+      const [searchQuery, setSearchQuery] = useState('');
+      const [apiKey, setApiKey] = useState(localStorage.getItem('tmdb_api_key') || '');
+      const [showApiModal, setShowApiModal] = useState(false);
+      
+      // Watchlist stored in LocalStorage
+      const [watchlist, setWatchlist] = useState(() => {
+        const saved = localStorage.getItem('cinepulse_watchlist');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      // Active selected movie for Details View Modal
+      const [selectedMovie, setSelectedMovie] = useState(null);
+      
+      // Trailer Modal State
+      const [trailerUrl, setTrailerUrl] = useState(null);
+
+      // Snackbar Notification State
+      const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
+
+      // Live API Fetched Data vs Mock Data fallback
+      const [items, setItems] = useState(MOCK_MOVIES);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      // Save Watchlist to LocalStorage
+      useEffect(() => {
+        localStorage.setItem('cinepulse_watchlist', JSON.stringify(watchlist));
+      }, [watchlist]);
+
+      // Save API Key to LocalStorage
+      const saveApiKey = (key) => {
+        setApiKey(key);
+        localStorage.setItem('tmdb_api_key', key);
+        setShowApiModal(false);
+        showToast('TMDB API Key updated successfully!', 'success');
+      };
+
+      // Toggle Watchlist Helper
+      const toggleWatchlist = (movie) => {
+        const exists = watchlist.some(item => item.id === movie.id);
+        if (exists) {
+          setWatchlist(prev => prev.filter(item => item.id !== movie.id));
+          showToast(`Removed "${movie.title || movie.name}" from Watchlist`, 'info');
+        } else {
+          setWatchlist(prev => [...prev, movie]);
+          showToast(`Added "${movie.title || movie.name}" to Watchlist!`, 'success');
+        }
+      };
+
+      const isInWatchlist = (id) => watchlist.some(item => item.id === id);
+
+      const showToast = (message, severity = 'info') => {
+        setToast({ open: true, message, severity });
+      };
+
+      // --- API FETCH ENGINE ---
+      const fetchFromTMDB = async (endpoint, params = {}) => {
+        if (!apiKey) return null;
+        try {
+          const queryString = new URLSearchParams({ api_key: apiKey, ...params }).toString();
+          const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?${queryString}`);
+          if (!res.ok) throw new Error('API Request Failed');
+          return await res.json();
+        } catch (err) {
+          console.warn("TMDB API Fetch failed, reverting to mock data", err);
+          return null;
+        }
+      };
+
+      // Handle Live Search and Filtering
+      useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+          setLoading(true);
+          setError(null);
+
+          if (searchQuery.trim() !== '') {
+            if (apiKey) {
+              const searchRes = await fetchFromTMDB('search/multi', { query: searchQuery });
+              if (searchRes && searchRes.results && isMounted) {
+                const formatted = searchRes.results.map(item => ({
+                  id: item.id,
+                  title: item.title || item.name,
+                  media_type: item.media_type || (item.first_air_date ? 'tv' : 'movie'),
+                  overview: item.overview || 'No description available.',
+                  poster_path: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
+                  backdrop_path: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80',
+                  vote_average: item.vote_average ? item.vote_average.toFixed(1) : 7.0,
+                  release_date: item.release_date || item.first_air_date || 'N/A',
+                  genre_ids: item.genre_ids || [],
+                  genres: item.genre_ids ? item.genre_ids.map(id => (GENRES_LIST.find(g => g.id === id) || {}).name).filter(Boolean) : ["Drama"],
+                  runtime: "N/A"
+                }));
+                setItems(formatted);
+                setLoading(false);
+                return;
+              }
+            }
+            // Mock Search Fallback
+            const filteredMock = MOCK_MOVIES.filter(m => 
+              m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              m.overview.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            if (isMounted) setItems(filteredMock);
+          } else {
+            // Default View
+            if (isMounted) setItems(MOCK_MOVIES);
+          }
+          setLoading(false);
+        };
+
+        const timer = setTimeout(() => {
+          loadData();
+        }, 300);
+
+        return () => {
+          isMounted = false;
+          clearTimeout(timer);
+        };
+      }, [searchQuery, apiKey]);
+
+      const contextValue = {
+        activeTab, setActiveTab,
+        searchQuery, setSearchQuery,
+        watchlist, toggleWatchlist, isInWatchlist,
+        selectedMovie, setSelectedMovie,
+        trailerUrl, setTrailerUrl,
+        items, loading, error,
+        apiKey, setShowApiModal,
+        showToast
+      };
+
+      return (
+        <AppContext.Provider value={contextValue}>
+          <Box className="min-h-screen flex flex-col bg-[#0b0f19] text-slate-100">
+            {/* Top Navigation Bar */}
+            <Header />
+
+            {/* Main Application Layout */}
+            <Box className="flex flex-1 pt-16">
+              <Sidebar />
+
+              <Box component="main" className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+                {/* Search Bar Mobile / Context Alert */}
+                {searchQuery && (
+                  <Box className="mb-6 flex justify-between items-center bg-slate-800/60 p-4 rounded-xl border border-slate-700">
+                    <Typography variant="h6" className="font-semibold">
+                      Search Results for: <span className="text-rose-500">"{searchQuery}"</span>
+                    </Typography>
+                    <Button size="small" color="inherit" onClick={() => setSearchQuery('')}>Clear Search</Button>
+                  </Box>
+                )}
+
+                {/* View Routing Based on State */}
+                {activeTab === 'home' && <HomeView />}
+                {activeTab === 'movies' && <BrowseView title="Popular Movies" filterType="movie" />}
+                {activeTab === 'tv' && <BrowseView title="TV Shows & Series" filterType="tv" />}
+                {activeTab === 'watchlist' && <WatchlistView />}
+              </Box>
+            </Box>
+
+            {/* Detail View Modal */}
+            {selectedMovie && <MovieDetailsModal />}
+
+            {/* Trailer Preview Dialog */}
+            {trailerUrl && <TrailerModal />}
+
+            {/* API Key Settings Dialog */}
+            <ApiKeyModal open={showApiModal} onClose={() => setShowApiModal(false)} onSave={saveApiKey} currentKey={apiKey} />
+
+            {/* Notification Toast */}
+            <Snackbar 
+              open={toast.open} 
+              autoHideDuration={3000} 
+              onClose={() => setToast({ ...toast, open: false })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <Alert severity={toast.severity} variant="filled" sx={{ width: '100%' }}>
+                {toast.message}
+              </Alert>
+            </Snackbar>
+          </Box>
+        </AppContext.Provider>
+      );
+    }
+
+    // --- COMPONENT 1: HEADER TOP BAR ---
+    function Header() {
+      const { searchQuery, setSearchQuery, activeTab, setActiveTab, watchlist, setShowApiModal, apiKey } = useApp();
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+      return (
+        <AppBar position="fixed" sx={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #1e293b' }}>
+          <Toolbar className="justify-between px-4 md:px-8">
+            {/* Logo */}
+            <Box className="flex items-center gap-3 cursor-pointer" onClick={() => { setActiveTab('home'); setSearchQuery(''); }}>
+              <div className="bg-gradient-to-r from-rose-600 to-pink-600 p-2 rounded-xl flex items-center justify-center shadow-lg shadow-rose-600/30">
+                <Icon name="clapperboard" className="text-white" size={24} />
+              </div>
+              <Typography variant="h5" className="font-extrabold brand-font tracking-wider bg-gradient-to-r from-white via-slate-200 to-rose-400 bg-clip-text text-transparent">
+                CINE<span className="text-rose-500">PULSE</span>
+              </Typography>
+            </Box>
+
+            {/* Search Field */}
+            <Box className="hidden md:flex flex-1 max-w-md mx-8">
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search movies, TV shows, actors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{
+                  backgroundColor: '#1e293b',
+                  borderRadius: '12px',
+                  '& .MuiOutlinedInput-root': {
+                    color: '#fff',
+                    '& fieldset': { borderColor: '#334155' },
+                    '&:hover fieldset': { borderColor: '#e11d48' },
+                    '&.Mui-focused fieldset': { borderColor: '#e11d48' },
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Icon name="search" className="text-slate-400" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')} className="text-slate-400">
+                        <Icon name="x" size={16} />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Box>
+
+            {/* Quick Actions */}
+            <Box className="flex items-center gap-2 md:gap-4">
+              <Tooltip title={apiKey ? "TMDB API Connected" : "Connect Custom TMDB API Key"}>
+                <Button 
+                  size="small" 
+                  variant={apiKey ? "outlined" : "contained"} 
+                  color={apiKey ? "success" : "error"}
+                  onClick={() => setShowApiModal(true)}
+                  startIcon={<Icon name="key" size={16} />}
+                  sx={{ borderRadius: '20px', textTransform: 'none', fontSize: '0.75rem' }}
+                >
+                  {apiKey ? "API Active" : "Set API Key"}
+                </Button>
+              </Tooltip>
+
+              <IconButton onClick={() => setActiveTab('watchlist')} className="text-slate-300 hover:text-rose-500">
+                <Badge badgeContent={watchlist.length} color="error">
+                  <Icon name="bookmark" />
+                </Badge>
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </AppBar>
+      );
+    }
+
+    // --- COMPONENT 2: SIDEBAR NAVIGATION ---
+    function Sidebar() {
+      const { activeTab, setActiveTab, watchlist } = useApp();
+
+      const navItems = [
+        { id: 'home', label: 'Home', icon: 'home' },
+        { id: 'movies', label: 'Movies', icon: 'film' },
+        { id: 'tv', label: 'TV Shows', icon: 'tv' },
+        { id: 'watchlist', label: 'My Watchlist', icon: 'bookmark', badge: watchlist.length }
+      ];
+
+      return (
+        <Box className="hidden lg:block w-64 p-4 border-r border-slate-800/80 min-h-screen sticky top-16 h-[calc(100vh-4rem)]">
+          <Typography variant="overline" className="text-slate-500 font-bold px-4 tracking-wider">
+            Menu
+          </Typography>
+          <List className="mt-2 space-y-1">
+            {navItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <ListItem key={item.id} disablePadding>
+                  <ListItemButton
+                    onClick={() => setActiveTab(item.id)}
+                    sx={{
+                      borderRadius: '12px',
+                      marginBottom: '4px',
+                      backgroundColor: isActive ? 'rgba(225, 29, 72, 0.15)' : 'transparent',
+                      color: isActive ? '#f43f5e' : '#94a3b8',
+                      borderRight: isActive ? '3px solid #e11d48' : 'none',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        color: '#f8fafc'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: isActive ? '#f43f5e' : '#64748b', minWidth: 40 }}>
+                      <Icon name={item.icon} size={20} />
+                    </ListItemIcon>
+                    <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: isActive ? 700 : 500 }} />
+                    {item.badge > 0 && (
+                      <span className="bg-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+        </Box>
+      );
+    }
+
+    // --- COMPONENT 3: HOME VIEW WITH HERO BANNER & CAROUSEL ROWS ---
+    function HomeView() {
+      const { items, setSelectedMovie, setTrailerUrl } = useApp();
+      const heroMovie = items[0] || MOCK_MOVIES[0];
+
+      return (
+        <Box className="space-y-10">
+          {/* Featured Dynamic Hero Banner */}
+          <Box className="relative rounded-3xl overflow-hidden min-h-[420px] md:min-h-[480px] flex items-end p-6 md:p-12 shadow-2xl border border-slate-800">
+            <img 
+              src={heroMovie.backdrop_path} 
+              alt={heroMovie.title} 
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 hero-overlay" />
+            
+            <Box className="relative z-10 max-w-2xl space-y-4">
+              <div className="flex items-center gap-2">
+                <Chip label="TRENDING NOW" color="error" size="small" className="font-bold tracking-wide" />
+                <Chip label={heroMovie.genres ? heroMovie.genres[0] : "Popular"} variant="outlined" sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }} size="small" />
+              </div>
+
+              <Typography variant="h3" className="font-black text-white text-3xl md:text-5xl leading-tight brand-font">
+                {heroMovie.title}
+              </Typography>
+
+              <Typography variant="body1" className="text-slate-300 line-clamp-3 text-sm md:text-base leading-relaxed">
+                {heroMovie.overview}
+              </Typography>
+
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <Button 
+                  variant="contained" 
+                  color="error" 
+                  size="large"
+                  startIcon={<Icon name="play" size={18} />}
+                  onClick={() => setTrailerUrl(heroMovie.trailer_url || "https://www.youtube.com/embed/Way9Dexny3w")}
+                  sx={{ borderRadius: '12px', fontWeight: 'bold', textTransform: 'none', px: 3 }}
+                >
+                  Watch Trailer
+                </Button>
+                
+                <Button 
+                  variant="outlined" 
+                  color="inherit" 
+                  size="large"
+                  startIcon={<Icon name="info" size={18} />}
+                  onClick={() => setSelectedMovie(heroMovie)}
+                  sx={{ borderRadius: '12px', textTransform: 'none', borderColor: 'rgba(255,255,255,0.4)' }}
+                >
+                  More Info
+                </Button>
+              </div>
+            </Box>
+          </Box>
+
+          {/* Section 1: Trending Movies Grid / Row */}
+          <MovieRow title="🔥 Trending Movies" items={items.filter(i => i.media_type === 'movie')} />
+
+          {/* Section 2: Popular TV Shows */}
+          <MovieRow title="📺 Popular TV Shows" items={items.filter(i => i.media_type === 'tv')} />
+
+          {/* Section 3: High Rated Collection */}
+          <MovieRow title="⭐ Critically Acclaimed" items={[...items].sort((a,b) => b.vote_average - a.vote_average)} />
+        </Box>
+      );
+    }
+
+    // --- COMPONENT 4: MOVIE ROW / HORIZONTAL SCROLL CAROUSEL ---
+    function MovieRow({ title, items }) {
+      if (!items || items.length === 0) return null;
+
+      return (
+        <Box className="space-y-4">
+          <Typography variant="h6" className="font-bold text-slate-100 flex items-center gap-2 brand-font">
+            {title}
+          </Typography>
+          
+          <Grid container spacing={3}>
+            {items.map(movie => (
+              <Grid item xs={6} sm={4} md={3} lg={3} key={movie.id}>
+                <MovieCard movie={movie} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      );
+    }
+
+    // --- COMPONENT 5: REUSABLE MOVIE CARD ---
+    function MovieCard({ movie }) {
+      const { setSelectedMovie, toggleWatchlist, isInWatchlist } = useApp();
+      const inWatchlist = isInWatchlist(movie.id);
+
+      return (
+        <Card 
+          className="movie-card bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden cursor-pointer flex flex-col h-full relative group"
+          onClick={() => setSelectedMovie(movie)}
+        >
+          {/* Poster Image Container */}
+          <div className="relative aspect-[2/3] overflow-hidden bg-slate-800">
+            <img 
+              src={movie.poster_path} 
+              alt={movie.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
+
+            {/* Rating Tag */}
+            <div className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 border border-slate-700/50">
+              <Icon name="star" className="text-amber-400 fill-amber-400" size={12} />
+              <span className="text-xs font-bold text-slate-100">{movie.vote_average}</span>
+            </div>
+
+            {/* Bookmark Watchlist Button */}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWatchlist(movie);
+              }}
+              className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md border transition-all ${
+                inWatchlist 
+                  ? 'bg-rose-600 border-rose-500 text-white' 
+                  : 'bg-slate-950/60 border-slate-700/50 text-slate-300 hover:text-white hover:bg-rose-600'
+              }`}
+            >
+              <Icon name="bookmark" size={14} className={inWatchlist ? "fill-white" : ""} />
+            </button>
+          </div>
+
+          {/* Card Meta Content */}
+          <CardContent className="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <Typography variant="subtitle1" className="font-bold text-slate-100 line-clamp-1 leading-snug group-hover:text-rose-400 transition-colors">
+                {movie.title}
+              </Typography>
+              <Typography variant="caption" className="text-slate-400 font-medium block mt-1">
+                {movie.release_date ? movie.release_date.split('-')[0] : 'N/A'} • {movie.media_type === 'tv' ? 'TV Series' : 'Movie'}
+              </Typography>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // --- COMPONENT 6: BROWSE VIEW (MOVIES & TV SHOWS WITH CATEGORY FILTERS) ---
+    function BrowseView({ title, filterType }) {
+      const { items, loading } = useApp();
+      const [selectedGenre, setSelectedGenre] = useState('all');
+      const [sortBy, setSortBy] = useState('popular');
+
+      // Filter Logic
+      const filtered = useMemo(() => {
+        let result = items.filter(item => item.media_type === filterType || !item.media_type);
+
+        if (selectedGenre !== 'all') {
+          result = result.filter(item => item.genre_ids && item.genre_ids.includes(Number(selectedGenre)));
+        }
+
+        if (sortBy === 'rating') {
+          result.sort((a,b) => b.vote_average - a.vote_average);
+        } else if (sortBy === 'newest') {
+          result.sort((a,b) => new Date(b.release_date) - new Date(a.release_date));
+        }
+
+        return result;
+      }, [items, filterType, selectedGenre, sortBy]);
+
+      return (
+        <Box className="space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <Typography variant="h4" className="font-extrabold text-white brand-font">
+                {title}
+              </Typography>
+              <Typography variant="body2" className="text-slate-400">
+                Explore curated catalog and filter by genres.
+              </Typography>
+            </div>
+
+            {/* Sort Dropdown */}
+            <FormControl size="small" className="min-w-[160px]">
+              <InputLabel id="sort-label" sx={{ color: '#94a3b8' }}>Sort By</InputLabel>
+              <Select
+                labelId="sort-label"
+                value={sortBy}
+                label="Sort By"
+                onChange={(e) => setSortBy(e.target.value)}
+                sx={{
+                  color: '#fff',
+                  backgroundColor: '#1e293b',
+                  borderRadius: '12px',
+                  '.MuiOutlinedInput-notchedOutline': { borderColor: '#334155' }
+                }}
+              >
+                <MenuItem value="popular">Most Popular</MenuItem>
+                <MenuItem value="rating">Highest Rated</MenuItem>
+                <MenuItem value="newest">Release Date</MenuItem>
+              </Select>
+            </FormControl>
+          </div>
+
+          {/* Category/Genre Filter Chips */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            {GENRES_LIST.map(genre => (
+              <Chip
+                key={genre.id}
+                label={genre.name}
+                clickable
+                onClick={() => setSelectedGenre(genre.id)}
+                color={selectedGenre === genre.id ? "error" : "default"}
+                variant={selectedGenre === genre.id ? "filled" : "outlined"}
+                sx={{
+                  borderRadius: '20px',
+                  color: selectedGenre === genre.id ? '#fff' : '#94a3b8',
+                  borderColor: '#334155'
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Items Grid View */}
+          {loading ? (
+            <Grid container spacing={3}>
+              {[1, 2, 3, 4, 8].map((n) => (
+                <Grid item xs={6} sm={4} md={3} key={n}>
+                  <Skeleton variant="rounded" height={320} className="bg-slate-800 rounded-2xl" />
+                </Grid>
+              ))}
+            </Grid>
+          ) : filtered.length > 0 ? (
+            <Grid container spacing={3}>
+              {filtered.map(movie => (
+                <Grid item xs={6} sm={4} md={3} lg={3} key={movie.id}>
+                  <MovieCard movie={movie} />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800/80">
+              <Icon name="film" size={48} className="text-slate-600 mx-auto mb-3" />
+              <Typography variant="h6" className="text-slate-300 font-semibold">
+                No titles found matching criteria
+              </Typography>
+              <Typography variant="body2" className="text-slate-500 mt-1">
+                Try selecting another genre or clear search queries.
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      );
+    }
+
+    // --- COMPONENT 7: WATCHLIST VIEW ---
+    function WatchlistView() {
+      const { watchlist, toggleWatchlist } = useApp();
+
+      return (
+        <Box className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <Typography variant="h4" className="font-extrabold text-white brand-font">
+                My Watchlist
+              </Typography>
+              <Typography variant="body2" className="text-slate-400">
+                Your saved movies and series ({watchlist.length})
+              </Typography>
+            </div>
+          </div>
+
+          {watchlist.length === 0 ? (
+            <Box className="text-center py-20 bg-slate-900/40 rounded-3xl border border-slate-800">
+              <Icon name="bookmark-x" size={56} className="text-slate-600 mx-auto mb-4" />
+              <Typography variant="h6" className="text-slate-200 font-bold">
+                Your watchlist is currently empty
+              </Typography>
+              <Typography variant="body2" className="text-slate-500 max-w-sm mx-auto mt-2">
+                Click the bookmark button on any movie card or detail page to save titles here.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {watchlist.map(movie => (
+                <Grid item xs={6} sm={4} md={3} key={movie.id}>
+                  <MovieCard movie={movie} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      );
+    }
+
+    // --- COMPONENT 8: MOVIE DETAILS MODAL VIEW ---
+    function MovieDetailsModal() {
+      const { selectedMovie, setSelectedMovie, toggleWatchlist, isInWatchlist, setTrailerUrl } = useApp();
+      if (!selectedMovie) return null;
+
+      const inWatchlist = isInWatchlist(selectedMovie.id);
+
+      return (
+        <Dialog 
+          open={Boolean(selectedMovie)} 
+          onClose={() => setSelectedMovie(null)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            style: {
+              backgroundColor: '#0f172a',
+              color: '#fff',
+              borderRadius: '24px',
+              border: '1px solid #334155',
+              overflow: 'hidden'
+            }
+          }}
+        >
+          <Box className="relative">
+            {/* Close Button */}
+            <IconButton 
+              onClick={() => setSelectedMovie(null)}
+              className="absolute top-4 right-4 z-20 bg-slate-950/70 text-white hover:bg-rose-600 transition-colors"
+            >
+              <Icon name="x" size={20} />
+            </IconButton>
+
+            {/* Header Backdrop */}
+            <div className="relative h-64 md:h-80 w-full overflow-hidden">
+              <img 
+                src={selectedMovie.backdrop_path} 
+                alt={selectedMovie.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent" />
+            </div>
+
+            {/* Content Details Body */}
+            <DialogContent className="px-6 md:px-10 pb-8 -mt-20 relative z-10">
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {/* Poster Thumbnail */}
+                <img 
+                  src={selectedMovie.poster_path} 
+                  alt={selectedMovie.title}
+                  className="w-36 md:w-48 rounded-2xl shadow-2xl border-2 border-slate-700 flex-shrink-0"
+                />
+
+                <div className="space-y-4 flex-1">
+                  <div>
+                    <Typography variant="h4" className="font-extrabold text-white brand-font">
+                      {selectedMovie.title}
+                    </Typography>
+                    
+                    <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-400">
+                      <span className="flex items-center gap-1 text-amber-400 font-bold">
+                        <Icon name="star" size={16} className="fill-amber-400" />
+                        {selectedMovie.vote_average} / 10
+                      </span>
+                      <span>•</span>
+                      <span>{selectedMovie.release_date}</span>
+                      <span>•</span>
+                      <span>{selectedMovie.runtime || '2h 15m'}</span>
+                    </div>
+                  </div>
+
+                  {/* Genres */}
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMovie.genres ? (
+                      selectedMovie.genres.map((g, idx) => (
+                        <Chip key={idx} label={g} size="small" className="bg-slate-800 text-slate-300 font-medium" />
+                      ))
+                    ) : (
+                      <Chip label="Cinema" size="small" className="bg-slate-800 text-slate-300" />
+                    )}
+                  </div>
+
+                  {/* Synopsis Overview */}
+                  <div>
+                    <Typography variant="subtitle2" className="text-slate-400 uppercase font-bold text-xs tracking-wider mb-1">
+                      Storyline
+                    </Typography>
+                    <Typography variant="body2" className="text-slate-300 leading-relaxed">
+                      {selectedMovie.overview}
+                    </Typography>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Button 
+                      variant="contained" 
+                      color="error"
+                      startIcon={<Icon name="play" size={18} />}
+                      onClick={() => setTrailerUrl(selectedMovie.trailer_url || "https://www.youtube.com/embed/Way9Dexny3w")}
+                      sx={{ borderRadius: '12px', textTransform: 'none', px: 3, fontWeight: 'bold' }}
+                    >
+                      Play Trailer
+                    </Button>
+
+                    <Button 
+                      variant={inWatchlist ? "outlined" : "contained"}
+                      color={inWatchlist ? "inherit" : "primary"}
+                      startIcon={<Icon name={inWatchlist ? "check" : "plus"} size={18} />}
+                      onClick={() => toggleWatchlist(selectedMovie)}
+                      sx={{ borderRadius: '12px', textTransform: 'none', px: 3, backgroundColor: inWatchlist ? 'transparent' : '#1e293b' }}
+                    >
+                      {inWatchlist ? "Saved in Watchlist" : "Add to Watchlist"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Box>
+        </Dialog>
+      );
+    }
+
+    // --- COMPONENT 9: TRAILER MODAL PREVIEW ---
+    function TrailerModal() {
+      const { trailerUrl, setTrailerUrl } = useApp();
+
+      return (
+        <Dialog 
+          open={Boolean(trailerUrl)} 
+          onClose={() => setTrailerUrl(null)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            style: { backgroundColor: '#000', borderRadius: '16px', overflow: 'hidden' }
+          }}
+        >
+          <Box className="relative pt-[56.25%] w-full">
+            <IconButton 
+              onClick={() => setTrailerUrl(null)}
+              className="absolute top-2 right-2 z-30 bg-black/60 text-white hover:bg-rose-600"
+            >
+              <Icon name="x" size={20} />
+            </IconButton>
+            <iframe
+              className="absolute inset-0 w-full h-full border-0"
+              src={trailerUrl}
+              title="Movie Trailer"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </Box>
+        </Dialog>
+      );
+    }
+
+    // --- COMPONENT 10: API KEY CONFIG MODAL ---
+    function ApiKeyModal({ open, onClose, onSave, currentKey }) {
+      const [key, setKey] = useState(currentKey);
+
+      useEffect(() => { setKey(currentKey); }, [currentKey]);
+
+      return (
+        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ style: { backgroundColor: '#0f172a', color: '#fff', borderRadius: '16px', border: '1px solid #334155' } }}>
+          <Box className="p-6 space-y-4">
+            <Typography variant="h6" className="font-bold brand-font">TMDB API Configuration</Typography>
+            <Typography variant="body2" className="text-slate-400">
+              Provide your personal TMDB API key to load live global search data. If left blank, built-in dynamic fallback data will be used.
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Enter TMDB v3 API Key"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              sx={{ backgroundColor: '#1e293b', borderRadius: '8px', input: { color: '#fff' } }}
+            />
+            <DialogActions className="px-0 pb-0">
+              <Button onClick={onClose} color="inherit">Cancel</Button>
+              <Button onClick={() => onSave(key)} variant="contained" color="error">Save Key</Button>
+            </DialogActions>
+          </Box>
+        </Dialog>
+      );
+    }
+
+    // Render React Root
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html
